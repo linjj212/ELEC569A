@@ -1,0 +1,108 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage[margin = 25.4mm]{geometry}
+\usepackage{graphicx,subcaption,setspace,booktabs}
+\usepackage{caption}
+\usepackage{lipsum}
+\usepackage{tikz}
+\usepackage{titlesec}
+\usepackage{setspace}
+\usepackage{mathptmx}
+\titleformat{\section}
+  {\normalfont\scshape\centering}{\thesection}{1em}{}
+ \renewcommand{\thesection}{\Roman{section}.}
+
+\title{ \normalsize \scshape{ELEC 569 Reconfigurable Computing}
+	\\[2.0cm]
+	\rule{\linewidth}{2pt}\\
+	\LARGE \textbf{{256-bit Shift Register Implementation and Optimization}}
+	\rule{\linewidth}{2pt} \\[0.5cm]
+	\normalsize \vspace*{5 \baselineskip}}
+	
+\date{}
+
+\author{
+	\Large{ \scshape{Shengyang Wei, Jingjing Lin}}\\
+	\normalsize
+	\vspace{0.5cm}
+	\scshape{Department of Electrical and Computer Engineering}\\
+	\scshape{University of Victoria}\\}
+
+\begin{document}
+
+\maketitle
+
+\newpage
+\doublespacing
+\begin{abstract}
+	 
+\end{abstract}
+Nowadays, FPGA is universally used due to its programmable feature. The designer can program a system in no limited times and even change the function at any time. There are several benefits for using FPGA to design a system, such like advantage performance. Since FPGA has flexible hardware structure, and the user can define the interconnection between logic cells, which means that user can execute the operations that not predefined compare to the processor\cite{benifit}. Also, the cost of an FPGA design is cheap. Hence, the industry applies FPGA in many areas. For example, medical, security, data center, .etc\cite{applications}.
+
+Our project is trying to use FPGA to design a 256-bit shift register and find the maximum and minimum delay time by using different placement and routing. In this report, you will see that we choose to use Xilinx SRL32 as the essential element to implement shift register. The ISE is the software that we use to implement and simulate our FPGA.
+\newpage
+ 
+\tableofcontents
+
+\newpage
+
+\section{Introduction}
+FPGA stands for Field Programmable Gate Array which means we can program them to do any digital function that we want, and we can recompile it no limit at any time. It just a silicon chip that has a reprogrammable digital circuitry, and each of these FPGAs has some configurable logic blocks. Besides, there is reconfigurable wiring circuitry between these logic blocks. That is to say; we can configure these logic blocks in any given configuration for whatever application we need.
+
+The FPGA has been around since the mid-eighties and since then like any other technology they have grown significantly more complicated. The FPGA use the external non-volatile memory to store the internal logic structure, and since the FPGA is an internal volatile memory, we need to load configuration data after power-up each time. The configuration data is loaded into internal SRAM under the processor or microcontroller's control\cite{7series}.
+
+Here is the general workflow for FPGA:
+
+1. Analysis and specify a design, breaking the system's design into basic elements, then write the "logic function".
+
+2. Simulate the VHDL code and then using the Xilinx ISE tool to compile design.
+
+3. Connecting the computer and target FPGA via a cable, then download the binary file which we get from the previous step to the FPGA.
+
+In our project, the most important part is compiling the design, especially the place and route part. Here is the general workflow for compiling the design:
+
+1. Synthesize: The HDL logic will be converted into a gate-level netlist by using the Xilinx XST tool.
+
+2. Implementation: The gate-level netlist which we got from the previous step will be converted into a placed and routed design.
+
+(1)Translate: Since the netlist is using UNISIM library rather than SIMPRIM library, this step is used to turn the library to SIMPRIM. 
+
+(2) Map: Take the SIMPRIM primitives and decide how to use the physical resources (LUT, flip-flops) in the chip.
+
+(3) Place and route: The software provided by FPGA vendor will run lots of computation to show that how to use the resource on the chips to place and route the design components.
+
+3.Generate the Programming File: Get a binary file by putting the above steps together. 
+
+The rest of the paper is organized as follows: We will introduce the background about shift register and slices in Section \ref{a2}  Section  \ref{a3} shows the detail about the system design. And the corresponding result is given in Section \ref{a4} The conclusions in Section \ref{a5} sum up the whole testing process. 
+
+\section{Background}  \label{a2}
+The shift register is a sequential circuit that is used for data storage and data transfer. It produces a discrete delay of a digital signal by sharing the same clock. Typically, it formed by the cascade of D or JK-type flip-flops. That is to say; the next flip-flop gets data from the output of the previous flip-flop, and the new data storage into the first flip-flop. The number of the flip-flop depends on how many bits of shift register we want to build. Since our project is to implement 256-bit of a shift register, we have 256 fIip-flops in our design. The shift register has five ways to transfer input and output, serial-in/serial-out, parallel-in/serial-out, serial-in/parallel-out, universal parallel-in/ parallel-out and ring counter. In our project, we choose serial-in/serial-out to shift the data.
+
+Shift register allows us to control a practically an infinite number of outputs using the microcontroller that has a very limited number of outputs.When we use the microcontroller to monitor the shift register, data is clocked into the storage register via the storage register clock line, just simply the clock, and the data line, and everything is on a rising edge of the clock. When all the data store into the storage register, the microcontroller will ships them into the output.
+
+In FPGA, slices are grouped into configurable logic blocks commonly called CLB, these contain commentary logic and register resources. The slice resources are the most essential and fundamental to an FPGA design. They include lots registers, also, they have to carry logic resources which are intended to implement arithmetic logic functions with high-speed performance due to their dedicated carry chain which runs vertically in columns from one slice to another on above. So, in Spartan-6, it only has one carry chain for CLB, and it is associated with the slices in column 0 of each CLB. 
+
+LUT also called function generators, the capacity of a LUT is limited by the number of inputs not by the complexity. So the delay through the LUT is constant regardless of what logic function is being performed inside.
+Spartan-6 slice contains a 6-input LUT which can be broken into two 5-input LUT with common inputs. Each slice has four LUT and four flip-flops, mux in slice can be used to build larger multiplexers\cite{userguide}.
+All flip-flops and flip-flop latches share the same control signals, the group of associated control signals with a flip-flops is important since only flip flops that share the same control signals can be grouped into the same slice this means that if we do not manage the use of our control signals and try to reduce the number of control signals, our design will have trouble getting high device utilization.   
+
+The implementation tool selects an appropriate routing that may include different kinds of routing resources. The solution that is routed the design to try and meet our timing needs. So it is important that we have timing constraints with the ISE design. Then, we can communicate our timing objectives to the implementation tools. That will allow the software to choose the most intelligent running solution to meet our needs.  
+
+\section{System design}  \label{a3}
+Since we have 256-bit shift register, and each LUT can be used as a 32-bit shift register, which means one slice can be used as a 128-bit shift register. Our aim is to find the minimum/maximum delay time for the 256-bit shift register, and the delay time shows as follow equation:
+$$T_{delay}=T_{su}+T_{co}+T_{net-delay}+T_{clk}$$
+$T_{su}$ means the setup time, $T_{co}$ means the time of clock transfer in the flip-flop, $T_{net-delay}$ means the delay of the interconnection, and the $T_{clk}$ means the delay between clock. Since the clock in our project is synchronous, the $T_{clk}$ here is almost zero. And the $T_{CK}$, the period of the clock, should larger than the $T_{delay}$.
+
+So the minimum delay time for the 256-bit shift register is using two slices which is located together, and the largest delay time for the 256-bit shift register is using eight slices.
+ 
+
+\section{Result}  \label{a4}
+
+\section{Conclusion}  \label{a5}
+
+\newpage
+\bibliographystyle{IEEEbib2e}
+\bibliography{references}
+
+\end{document}
